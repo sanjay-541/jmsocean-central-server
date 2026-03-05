@@ -70,7 +70,7 @@ const TABLES_TO_PULL = [...SYNC_ALL];
    ============================================================ */
 
 // Receive Push Data (from Local)
-router.post('/push', async (req, res) => {
+router.post(['/push', '/upload'], async (req, res) => {
     if (!pool) return res.status(503).json({ error: 'Service initializing' });
     try {
         const { factoryId, table, data, apiKey } = req.body;
@@ -94,7 +94,7 @@ router.post('/push', async (req, res) => {
 });
 
 // Serve Pull Data (to Local)
-router.get('/pull', async (req, res) => {
+router.get(['/pull', '/download'], async (req, res) => {
     if (!pool) return res.status(503).json({ error: 'Service initializing' });
     try {
         const { table, lastSync, apiKey, factoryId } = req.query; // Added factoryId
