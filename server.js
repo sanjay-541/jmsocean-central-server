@@ -136,7 +136,7 @@ function getFactoryId(req) {
 /* =========================
    STATIC FRONTEND
 ========================= */
-const PUBLIC_DIR = path.join(__dirname, 'public');
+const PUBLIC_DIR = path.join(__dirname, 'PUBLIC');
 app.use(express.static(PUBLIC_DIR));
 
 /* ============================================================
@@ -397,19 +397,9 @@ async function waitForDb(pool, retries = 30, delay = 2000) {
     // [FIX] Wait for DB before anything else
     await waitForDb(pool);
 
-    // Non-blocking index creation
+    // Table creation
     await pool.query(`
-            CREATE INDEX IF NOT EXISTS idx_plan_board_machine ON plan_board(machine);
-            CREATE INDEX IF NOT EXISTS idx_plan_board_status ON plan_board(status);
-            CREATE INDEX IF NOT EXISTS idx_std_actual_plan_id ON std_actual(plan_id);
-            CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
-
-            -- NEW MASTER PLAN OPTIMIZATION INDEXES
-            CREATE INDEX IF NOT EXISTS idx_dpr_hourly_order ON dpr_hourly(order_no);
-            CREATE INDEX IF NOT EXISTS idx_or_jr_report_no ON or_jr_report(or_jr_no);
-            CREATE INDEX IF NOT EXISTS idx_moulds_product ON moulds(product_name);
-            CREATE INDEX IF NOT EXISTS idx_or_jr_report_no_trim ON or_jr_report(TRIM(or_jr_no));
-            CREATE INDEX IF NOT EXISTS idx_moulds_erp_item_trim ON moulds(TRIM(erp_item_code));
+            CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
             CREATE TABLE IF NOT EXISTS roles (
                 code TEXT PRIMARY KEY,
@@ -495,8 +485,6 @@ async function waitForDb(pool, retries = 30, delay = 2000) {
                 scanned_by TEXT,
                 scanned_at TIMESTAMP DEFAULT NOW()
             );
-            
-            ALTER TABLE plan_board ADD COLUMN IF NOT EXISTS seq INTEGER DEFAULT 0;
 
             CREATE TABLE IF NOT EXISTS shifting_records (
                 id SERIAL PRIMARY KEY,
@@ -601,7 +589,6 @@ async function waitForDb(pool, retries = 30, delay = 2000) {
 
     // [FIX] Universal Schema Fix for Sync
     // Ensure ALL sync tables have sync_id, factory_id, and UNIQUE INDEX on sync_id
-    await q(`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`);
 
     const SYNC_TABLES = [
       'app_settings',
@@ -746,6 +733,7 @@ async function waitForDb(pool, retries = 30, delay = 2000) {
 
     await q(`ALTER TABLE shifting_records ADD COLUMN IF NOT EXISTS shift_date DATE;`);
     await q(`ALTER TABLE shifting_records ADD COLUMN IF NOT EXISTS shift_type TEXT;`);
+    await q(`ALTER TABLE plan_board ADD COLUMN IF NOT EXISTS seq INTEGER DEFAULT 0;`);
 
     // Performance Indexes
     await q(`CREATE INDEX IF NOT EXISTS idx_shifting_plan_id ON shifting_records(plan_id);`);
@@ -791,11 +779,26 @@ async function waitForDb(pool, retries = 30, delay = 2000) {
     } catch (e) {
       console.error('[DB] Constraint/Migration fix warning:', e.message);
     }
+  } catch (e) {
+    console.error('[DB] Table creation warning:', e.message);
+  }
 
+  try {
+    // Non-blocking index creation
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_plan_board_machine ON plan_board(machine);
+      CREATE INDEX IF NOT EXISTS idx_plan_board_status ON plan_board(status);
+      CREATE INDEX IF NOT EXISTS idx_std_actual_plan_id ON std_actual(plan_id);
+      CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+
+      -- NEW MASTER PLAN OPTIMIZATION INDEXES
+      CREATE INDEX IF NOT EXISTS idx_dpr_hourly_order ON dpr_hourly(order_no);
+      CREATE INDEX IF NOT EXISTS idx_or_jr_report_no ON or_jr_report(or_jr_no);
+      CREATE INDEX IF NOT EXISTS idx_moulds_product ON moulds(product_name);
+      CREATE INDEX IF NOT EXISTS idx_or_jr_report_no_trim ON or_jr_report(TRIM(or_jr_no));
+      CREATE INDEX IF NOT EXISTS idx_moulds_erp_item_trim ON moulds(TRIM(erp_item_code));
+    `);
     console.log('[DB] Indexes ensured for performance.');
-
-
-
   } catch (e) {
     console.error('[DB] Indexing warning:', e.message);
   }
