@@ -569,6 +569,13 @@ window.JPSMS = window.JPSMS || {};
             ]
         },
         {
+            id: 'factories',
+            label: 'Local Servers',
+            icon: 'bi-hdd-network',
+            href: 'factories.html',
+            items: []
+        },
+        {
             id: 'users',
             label: 'User Management',
             icon: 'bi-person-gear',

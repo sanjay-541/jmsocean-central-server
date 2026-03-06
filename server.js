@@ -928,23 +928,59 @@ app.get('/api/factories', async (req, res) => {
 
 app.post('/api/factories/save', async (req, res) => {
   try {
-    const { id, name, code, location, is_active } = req.body;
+    const { id, name, code, location, is_active, server_ip, sync_api_key } = req.body;
     if (!name || !code) return res.json({ ok: false, error: 'Name and Code required' });
 
     if (id) {
       await q(
-        `UPDATE factories SET name=$1, code=$2, location=$3, is_active=$4, updated_at=NOW() WHERE id=$5`,
-        [name, code, location, is_active, id]
+        `UPDATE factories SET name=$1, code=$2, location=$3, is_active=$4, server_ip=$5, sync_api_key=$6, updated_at=NOW() WHERE id=$7`,
+        [name, code, location, is_active, server_ip, sync_api_key, id]
       );
     } else {
       await q(
-        `INSERT INTO factories (name, code, location, is_active) VALUES ($1, $2, $3, $4)`,
-        [name, code, location, is_active || true]
+        `INSERT INTO factories (name, code, location, is_active, server_ip, sync_api_key) VALUES ($1, $2, $3, $4, $5, $6)`,
+        [name, code, location, is_active || true, server_ip, sync_api_key]
       );
     }
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
+// PING / Health Check for Local Factory Server
+app.post('/api/factories/ping', async (req, res) => {
+  try {
+    const { id, server_ip } = req.body;
+    if (!server_ip) return res.json({ ok: false, error: 'No IP Address provided.' });
+
+    // Validate if it is a correct URL scheme
+    let target = server_ip;
+    if (!target.startsWith('http')) {
+      target = 'http://' + target;
+    }
+
+    const start = Date.now();
+    // Setting 5s timeout on fetch to prevent infinite hanging
+    const abortCtrl = new AbortController();
+    const timeoutId = setTimeout(() => abortCtrl.abort(), 5000);
+
+    const pingCheck = await fetch(`${target}/api/ping`, {
+      method: 'GET',
+      signal: abortCtrl.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    const ms = Date.now() - start;
+    if (pingCheck.ok) {
+      return res.json({ ok: true, online: true, ms });
+    } else {
+      return res.json({ ok: true, online: false, ms, error: 'Server returned ' + pingCheck.status });
+    }
+  } catch (e) {
+    const ms = 5000;
+    return res.json({ ok: true, online: false, ms, error: String(e.message || e) });
   }
 });
 

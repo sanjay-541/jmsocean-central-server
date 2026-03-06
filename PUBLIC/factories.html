@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JMS Ocean - Local Factory Servers</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --dark-bg: #0f172a;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --sidebar-width: 280px;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #f8fafc;
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        .wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--dark-bg);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 1000;
+        }
+
+        .sidebar-brand {
+            padding: 1.5rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-link {
+            color: #cbd5e1;
+            padding: 0.8rem 1.5rem;
+            border-radius: 0;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid var(--primary);
+        }
+
+        .nav-link i {
+            margin-right: 10px;
+            font-size: 1.1rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            background: #f8fafc;
+            min-height: 100vh;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        /* Card */
+        .glass-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        /* Table */
+        .table-container {
+            margin-top: 1rem;
+        }
+
+        table.dataTable {
+            border-collapse: collapse !important;
+        }
+
+        table.dataTable thead th {
+            border-bottom: 2px solid #e2e8f0;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 1rem;
+        }
+
+        table.dataTable tbody td {
+            padding: 1rem;
+            vertical-align: middle;
+            color: var(--text-main);
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        /* Status Badges */
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .status-online {
+            background-color: var(--success);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+        }
+
+        .status-offline {
+            background-color: var(--danger);
+        }
+
+        .status-unknown {
+            background-color: #cbd5e1;
+        }
+
+        /* Action Buttons */
+        .btn-action {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-ping {
+            background-color: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .btn-ping:hover {
+            background-color: #e2e8f0;
+        }
+
+        .btn-sync {
+            background-color: rgba(37, 99, 235, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-sync:hover {
+            background-color: rgba(37, 99, 235, 0.2);
+        }
+
+        /* Spinner */
+        .ping-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #475569;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <a href="supervisor.html" class="sidebar-brand">
+                <i class="bi bi-water"></i> JMS Ocean
+            </a>
+            <div class="px-3 py-2 text-uppercase"
+                style="font-size:0.75rem; color:#64748b; font-weight:600; letter-spacing:1px; margin-top:20px;">
+                Admin Options
+            </div>
+            <nav class="nav flex-column mt-2">
+                <a class="nav-link" href="users.html"><i class="bi bi-people"></i> Manage Users</a>
+                <a class="nav-link active" href="factories.html"><i class="bi bi-hdd-network"></i> Factory Servers</a>
+                <a class="nav-link" href="supervisor.html"><i class="bi bi-laptop"></i> System Dashboard</a>
+                <a class="nav-link text-danger mt-3" href="#" onclick="logout()"><i class="bi bi-box-arrow-left"></i>
+                    Logout</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Local Factory Servers</h1>
+                    <p class="text-muted mt-1 mb-0">Manage and monitor remote factory edge servers linked to this
+                        Central system.</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary shadow-sm" style="border-radius:8px; font-weight:500;"
+                        onclick="openAddModal()">
+                        <i class="bi bi-plus-lg me-2"></i> Register Factory
+                    </button>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="glass-card table-container">
+                <table id="factoriesTable" class="table table-hover w-100">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Factory Name</th>
+                            <th>Location/Code</th>
+                            <th>Local IP Address</th>
+                            <th>Last Sync</th>
+                            <th>Network Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="factoriesTbody">
+                        <!-- Filled via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: Add/Edit Factory -->
+    <div class="modal fade" id="factoryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content"
+                style="border-radius: 12px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-semibold" id="factoryModalLabel">Register Local Server</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    <form id="factoryForm">
+                        <input type="hidden" id="f_id">
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-semibold text-uppercase">Factory Name *</label>
+                            <input type="text" id="f_name" class="form-control" placeholder="e.g. Surat Main Plant"
+                                required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted small fw-semibold text-uppercase">Code *</label>
+                                <input type="text" id="f_code" class="form-control" placeholder="e.g. SRT-01" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted small fw-semibold text-uppercase">Location</label>
+                                <input type="text" id="f_location" class="form-control" placeholder="Optional">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-semibold text-uppercase">Local Server IP /
+                                URL</label>
+                            <input type="text" id="f_ip" class="form-control"
+                                placeholder="e.g. http://192.168.1.100:3000">
+                            <div class="form-text">Must include http:// or https:// and port if applicable.</div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label text-muted small fw-semibold text-uppercase">Sync API Key</label>
+                            <div class="input-group">
+                                <input type="text" id="f_api" class="form-control" placeholder="Secure token">
+                                <button class="btn btn-outline-secondary" type="button" onclick="generateToken()"><i
+                                        class="bi bi-arrow-clockwise"></i></button>
+                            </div>
+                        </div>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="f_active" checked>
+                            <label class="form-check-label" for="f_active">Factory is Active</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveFactory()">Save Configuration</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        let table;
+        let factoryModal;
+
+        $(document).ready(() => {
+            // Security check
+            const rawRoles = localStorage.getItem('roles') || '[]';
+            try {
+                if (!rawRoles.includes('superadmin')) {
+                    alert("Access Denied: Superadmin only.");
+                    window.location.href = 'supervisor.html';
+                    return;
+                }
+            } catch (e) { }
+
+            factoryModal = new bootstrap.Modal(document.getElementById('factoryModal'));
+            loadFactories();
+        });
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        function generateToken() {
+            const random = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            document.getElementById('f_api').value = `jms-sync-${random}`;
+        }
+
+        function openAddModal() {
+            document.getElementById('factoryForm').reset();
+            document.getElementById('f_id').value = '';
+            document.getElementById('factoryModalLabel').innerText = 'Register Local Server';
+            factoryModal.show();
+        }
+
+        function openEditModal(fStr) {
+            const f = JSON.parse(decodeURIComponent(fStr));
+            document.getElementById('f_id').value = f.id;
+            document.getElementById('f_name').value = f.name;
+            document.getElementById('f_code').value = f.code;
+            document.getElementById('f_location').value = f.location || '';
+            document.getElementById('f_ip').value = f.server_ip || '';
+            document.getElementById('f_api').value = f.sync_api_key || '';
+            document.getElementById('f_active').checked = f.is_active;
+            document.getElementById('factoryModalLabel').innerText = 'Edit Local Server';
+            factoryModal.show();
+        }
+
+        async function loadFactories() {
+            try {
+                const res = await fetch('/api/factories');
+                const json = await res.json();
+                if (table) { table.destroy(); }
+
+                const tbody = document.getElementById('factoriesTbody');
+                tbody.innerHTML = '';
+
+                if (json.ok && json.data) {
+                    json.data.forEach(f => {
+                        const enc = encodeURIComponent(JSON.stringify(f));
+
+                        let lastSync = 'Never Sync\'d';
+                        if (f.last_sync_at) {
+                            const dt = new Date(f.last_sync_at);
+                            lastSync = dt.toLocaleString();
+                        }
+
+                        let ipDisplay = f.server_ip ? `<a href="${f.server_ip}" target="_blank" class="text-decoration-none">${f.server_ip}</a>` : `<span class="text-muted">Not Configured</span>`;
+
+                        const row = `
+            <tr>
+              <td><strong>#${f.id}</strong></td>
+              <td>
+                <div class="fw-semibold">${f.name}</div>
+                ${!f.is_active ? '<span class="badge bg-danger">Disabled</span>' : ''}
+              </td>
+              <td>${f.location || ''} <span class="badge bg-light text-dark shadow-sm border">${f.code}</span></td>
+              <td>${ipDisplay}</td>
+              <td class="text-muted small">${lastSync}</td>
+              <td id="status-cell-${f.id}">
+                <span class="status-dot status-unknown"></span> <span class="text-muted">Unknown</span>
+              </td>
+              <td class="text-end">
+                <button class="btn btn-action btn-ping" onclick="pingServer(${f.id}, '${f.server_ip || ''}')" title="Test Connection">
+                  <i id="ping-icon-${f.id}" class="bi bi-activity"></i> Ping
+                </button>
+                <button class="btn btn-action btn-sync ms-1" onclick="triggerSync(${f.id})" title="Force Database Exchange">
+                  <i class="bi bi-arrow-left-right"></i> Sync
+                </button>
+                <button class="btn btn-light btn-sm ms-2" onclick="openEditModal('${enc}')">
+                  <i class="bi bi-pencil"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+                        tbody.innerHTML += row;
+                    });
+                }
+
+                table = $('#factoriesTable').DataTable({
+                    pageLength: 25,
+                    ordering: false,
+                    language: { search: "", searchPlaceholder: "Search servers..." },
+                    dom: '<"row align-items-center mb-3"<"col-md-6"f><"col-md-6 text-end"p>>t'
+                });
+                $('.dataTables_filter input').addClass('form-control shadow-sm').css('border-radius', '8px');
+
+            } catch (e) { console.error('Load factories error', e); }
+        }
+
+        async function saveFactory() {
+            const payload = {
+                id: document.getElementById('f_id').value,
+                name: document.getElementById('f_name').value,
+                code: document.getElementById('f_code').value,
+                location: document.getElementById('f_location').value,
+                server_ip: document.getElementById('f_ip').value,
+                sync_api_key: document.getElementById('f_api').value,
+                is_active: document.getElementById('f_active').checked
+            };
+
+            if (!payload.name || !payload.code) { return alert('Name and Code are required!'); }
+
+            try {
+                const res = await fetch('/api/factories/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    factoryModal.hide();
+                    loadFactories();
+                } else {
+                    alert(data.error || 'Failed to save');
+                }
+            } catch (e) {
+                alert("Network Error: " + e.message);
+            }
+        }
+
+        async function pingServer(id, ip) {
+            if (!ip) {
+                alert("No IP Address configured for this server!");
+                return;
+            }
+
+            // UI Loading state
+            const icon = document.getElementById(`ping-icon-${id}`);
+            const cell = document.getElementById(`status-cell-${id}`);
+
+            icon.className = 'ping-spinner';
+            cell.innerHTML = `<span class="status-dot status-unknown"></span> Connecting...`;
+
+            try {
+                const res = await fetch('/api/factories/ping', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, server_ip: ip })
+                });
+                const data = await res.json();
+
+                icon.className = 'bi bi-activity';
+
+                if (data.ok && data.online) {
+                    cell.innerHTML = `<span class="status-dot status-online"></span> <span class="text-success fw-semibold">Online</span>`;
+                } else {
+                    cell.innerHTML = `<span class="status-dot status-offline"></span> <span class="text-danger fw-semibold">Offline (${data.ms || '-'}ms)</span>`;
+                }
+            } catch (e) {
+                icon.className = 'bi bi-activity';
+                cell.innerHTML = `<span class="status-dot status-offline"></span> <span class="text-danger fw-semibold">Timeout/Error</span>`;
+            }
+        }
+
+        async function triggerSync(id) {
+            if (!confirm("Attempt to force a bidirectional database sync with this local server?")) return;
+            try {
+                const res = await fetch('/api/sync/force-pull', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target_factory_id: id })
+                });
+                const txt = await res.text();
+                alert("Sync Request Sent. Server response: " + txt);
+                loadFactories(); // to update last sync time optimally
+            } catch (e) {
+                alert("Failed to reach sync endpoint: " + e.message);
+            }
+        }
+    </script>
+
+</body>
+
+</html>
