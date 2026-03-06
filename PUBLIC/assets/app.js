@@ -166,6 +166,7 @@ window.JPSMS = window.JPSMS || {};
             }
 
             // 2. Role Fallback (Legacy)
+            if (feature === 'factories' && action === 'view') return ['superadmin', 'admin'].includes(u.role_code);
             if (feature === 'masters' && action === 'edit') return ['supervisor', 'manager', 'planner'].includes(u.role_code);
             if (feature === 'planning' && action === 'edit') return ['supervisor', 'manager', 'planner'].includes(u.role_code);
             if (feature === 'planning' && action === 'view') return true; // Explicitly allow view for everyone authenticated
