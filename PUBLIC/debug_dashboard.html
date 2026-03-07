@@ -68,7 +68,7 @@
         <div id="audio-status" style="margin-top:10px"></div>
     </div>
 
-    <script src="/assets/app.js?v=9"></script>
+    <script src="/assets/app_core.js?v=1"></script>
     <script>
         // 1. API Test
         async function testAPI() {
@@ -76,7 +76,7 @@
             const resEl = document.getElementById('api-result');
             try {
                 // Check if JPSMS loaded
-                if (!window.JPSMS) throw new Error("JPSMS global not found (app.js issue?)");
+                if (!window.JPSMS) throw new Error("JPSMS global not found (app_core.js?v=1 issue?)");
 
                 el.textContent = "Fetching /api/assembly/active...";
                 const res = await JPSMS.api.request('/assembly/active', { skipLoader: true });

@@ -154,7 +154,7 @@
             }
         }
     </style>
-    <script src="/assets/app.js?v=9"></script>
+    <script src="/assets/app_core.js?v=1"></script>
     <script>
         let pendingUser = null;
         let pendingFactories = [];
@@ -171,7 +171,7 @@
             btn.textContent = 'Authenticating...';
 
             try {
-                // Modified app.js returns { user, factories } or just data depending on update
+                // Modified app_core.js?v=1 returns { user, factories } or just data depending on update
                 // My update returned { user: res.data, factories: res.factories }
                 const result = await JPSMS.auth.login(u, p);
 

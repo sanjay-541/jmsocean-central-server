@@ -1084,7 +1084,7 @@
   <div id="app"></div>
 
   <!-- App shell -->
-  <script defer src="/assets/app.js?v=9" onerror="alert('Failed to load /assets/app.js');"></script>
+  <script defer src="/assets/app_core.js?v=1" onerror="alert('Failed to load /assets/app_core.js?v=1');"></script>
 
   <script>
     // --- Boot Routing Logic ---
@@ -1438,7 +1438,7 @@
         };
 
 
-        // app.js renderShell now ensures #pageContent exists
+        // app_core.js?v=1 renderShell now ensures #pageContent exists
         const root = document.getElementById("pageContent");
         if (!root) {
           console.error('pageContent not found even after renderShell');
@@ -5308,7 +5308,7 @@
 
     });
   </script>
-  <script src="/assets/app.js?v=9"></script>
+  <script src="/assets/app_core.js?v=1"></script>
   <script src="js/order_view.js"></script>
 
   <script>
