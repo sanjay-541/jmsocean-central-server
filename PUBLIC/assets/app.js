@@ -166,15 +166,17 @@ window.JPSMS = window.JPSMS || {};
             }
 
             // 2. Role Fallback (Legacy)
-            if (feature === 'factories' && action === 'view') return ['superadmin', 'admin'].includes(u.role_code);
-            if (feature === 'masters' && action === 'edit') return ['supervisor', 'manager', 'planner'].includes(u.role_code);
-            if (feature === 'planning' && action === 'edit') return ['supervisor', 'manager', 'planner'].includes(u.role_code);
+            const userRole = u.role || u.role_code;
+            if (feature === 'factories' && action === 'view') return ['superadmin', 'admin'].includes(userRole);
+            if (feature === 'masters' && action === 'edit') return ['supervisor', 'manager', 'planner'].includes(userRole);
+            if (feature === 'planning' && action === 'edit') return ['supervisor', 'manager', 'planner'].includes(userRole);
             if (feature === 'planning' && action === 'view') return true; // Explicitly allow view for everyone authenticated
             return true;
         },
         hasRole: (role) => {
             const u = JSON.parse(localStorage.getItem('user') || '{}');
-            return u.role_code === role;
+            const userRole = u.role || u.role_code;
+            return userRole === role;
         },
         // Auto-Logout Timer
         initAutoLogout: () => {
