@@ -1,1 +1,0 @@
-or_jr_no, or_jr_date, item_code, bom_type, product_name, jr_qty, uom, plan_date, plan_qty, mould_no, mould_name, mould_item_qty, tonnage, machine_name, cycle_time, cavity, created_by, created_date, edited_by, edited_date, id, factory_id, last_updated_at, global_id, sync_status, sync_id, updated_at

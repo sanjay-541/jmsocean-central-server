@@ -1,1 +1,0 @@
-id, plan_id, plant, building, line, machine, seq, order_no, item_code, item_name, mould_name, plan_qty, bal_qty, start_date, end_date, status, updated_at, mould_code, completed_by, completed_at, remarks, job_card_given, factory_id, last_updated_at, global_id, sync_status, sync_id, erp_ref_id
