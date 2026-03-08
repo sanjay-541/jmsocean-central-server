@@ -146,12 +146,9 @@ window.JPSMS = window.JPSMS || {};
             const u = JSON.parse(localStorage.getItem('user') || '{}');
             const userRoleStr = String(u.role || u.role_code || '').trim().toLowerCase();
 
-            // Force bypass for Local Servers (Factories) for any admin/superadmin identities
-            if ((userRoleStr === 'admin' || userRoleStr === 'superadmin' || u.username === 'superadmin') && feature === 'factories') {
-                return true;
-            }
+            if ((userRoleStr === 'admin' || userRoleStr === 'superadmin') && feature === 'factories') return true;
 
-            if (u.role_code === 'admin') return true; // Admin has full access
+            if (userRoleStr === 'admin' || userRoleStr === 'superadmin' || u.username === 'superadmin') return true; // Full access for admins
 
             // 1. Granular Check
             const p = u.permissions || {};
