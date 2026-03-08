@@ -6,6 +6,32 @@ const jwt = require('jsonwebtoken');
 
 const router = express.Router();
 
+// Simple in-memory rate limit: max 10 login attempts per key per 15 min
+const loginAttempts = new Map();
+const MAX_ATTEMPTS = 10;
+const WINDOW_MS = 15 * 60 * 1000;
+
+function getLoginKey(req) {
+  return req.ip || req.socket?.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
+}
+
+function checkLoginRateLimit(req) {
+  const key = getLoginKey(req);
+  const now = Date.now();
+  let entry = loginAttempts.get(key);
+  if (!entry) {
+    entry = { count: 0, resetAt: now + WINDOW_MS };
+    loginAttempts.set(key, entry);
+  }
+  if (now > entry.resetAt) {
+    entry.count = 0;
+    entry.resetAt = now + WINDOW_MS;
+  }
+  entry.count++;
+  if (entry.count > MAX_ATTEMPTS) return false;
+  return true;
+}
+
 /**
  * Create auth routes (login, health). Mount at /api so routes are /api/health, /api/login.
  * @param {{ pool: import('pg').Pool, JWT_SECRET: string }} deps
@@ -29,6 +55,9 @@ function createAuthRouter(deps) {
 
   router.post('/login', async (req, res) => {
     try {
+      if (!checkLoginRateLimit(req)) {
+        return res.status(429).json({ ok: false, error: 'Too many login attempts. Try again later.' });
+      }
       const { username, password } = req.body || {};
       if (!username || !password) return res.json({ ok: false, error: 'Missing credentials' });
 

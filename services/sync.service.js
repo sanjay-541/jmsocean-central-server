@@ -4,10 +4,12 @@ const express = require('express');
 const router = express.Router();
 
 let pool;
-let SERVER_TYPE = 'STANDALONE'; // Default to isolated
-let MAIN_SERVER_URL = ''; // No remote connection by default
-let LOCAL_FACTORY_ID = 1; // Default to 1 if not set
-let API_KEY = 'jpsms-sync-key'; // Simple shared secret
+let SERVER_TYPE = 'STANDALONE';
+let MAIN_SERVER_URL = '';
+let LOCAL_FACTORY_ID = 1;
+const isProd = process.env.NODE_ENV === 'production';
+const API_KEY = process.env.SYNC_API_KEY || (isProd ? '' : 'jpsms-sync-key-dev');
+if (isProd && !API_KEY) throw new Error('SYNC_API_KEY must be set in production (.env)');
 
 const SYNC_INTERVAL_MS = 60 * 1000; // 1 Minute (Real-Time)
 

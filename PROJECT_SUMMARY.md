@@ -24,6 +24,13 @@
 3. **Context Limitation**: When assisting, the agent should only scan/open files explicitly needed for the task to conserve tokens and reduce latency.
 4. **Precision over Speed**: For complex requests, prioritize complete and comprehensive coverage ("Perfect Coverage") over speed. Avoid skipping steps.
 
+## Security (Production)
+- **JWT_SECRET** and **SYNC_API_KEY** must be set in `.env` when `NODE_ENV=production` (server will throw on startup if missing).
+- **DB_PASSWORD** must be set in production; no hardcoded fallback.
+- Copy `.env.example` to `.env` and fill in values. Never commit `.env`.
+- Login is rate-limited (10 attempts per IP per 15 min). CSP and CORS are stricter in production.
+
 ## Developer Notes
 - Ensure `.env` is properly populated across environments (development, Docker, production).
 - Use `npm start` (which runs `node server.js`) to boot the application.
+- Auth routes (login, health) live in `routes/auth.routes.js` and are mounted at `/api`.

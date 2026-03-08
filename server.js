@@ -23,6 +23,23 @@ const jwt = require('jsonwebtoken');
 const isProd = process.env.NODE_ENV === 'production';
 const JWT_SECRET = process.env.JWT_SECRET || (isProd ? '' : 'jms-dev-fallback');
 if (isProd && !JWT_SECRET) throw new Error('JWT_SECRET must be set in production (.env)');
+if (isProd && !process.env.DB_PASSWORD && !process.env.PGPASSWORD) throw new Error('DB_PASSWORD must be set in production (.env)');
+
+const pool = new Pool({
+  host: process.env.DB_HOST || process.env.PGHOST || 'localhost',
+  port: process.env.DB_PORT || process.env.PGPORT || 5432,
+  user: process.env.DB_USER || process.env.PGUSER || 'postgres',
+  password: process.env.DB_PASSWORD || process.env.PGPASSWORD || (isProd ? undefined : 'Sanjay@541##'),
+  database: process.env.DB_NAME || process.env.PGDATABASE || 'jpsms',
+  max: 50,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000
+});
+
+async function q(text, params) {
+  const { rows } = await pool.query(text, params);
+  return rows;
+}
 
 // Init AI
 aiService.init(process.env.GEMINI_API_KEY);
@@ -64,6 +81,7 @@ app.use('/api/erp', erpRoutes);
 app.use('/api/vendor', vendorRoutes);
 app.use('/api/sync', syncService.router);
 app.use('/api/update', updaterService.router);
+app.use('/api', createAuthRouter({ pool, JWT_SECRET }));
 
 /* ============================================================
    SECURITY MIDDLEWARE
@@ -335,43 +353,11 @@ app.get('/api/qc/reports', async (req, res) => {
 /* =========================
    404 HANDLER
    ========================= */
-/* =========================
-   DATABASE
-========================= */
-const pool = new Pool({
-  host: process.env.DB_HOST || process.env.PGHOST || 'localhost',
-  port: process.env.DB_PORT || process.env.PGPORT || 5432,
-  user: process.env.DB_USER || process.env.PGUSER || 'postgres',
-  password: process.env.DB_PASSWORD || process.env.PGPASSWORD || 'Sanjay@541##',
-  database: process.env.DB_NAME || process.env.PGDATABASE || 'jpsms',
-  max: 50,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000
-});
-
-async function q(text, params) {
-  const { rows } = await pool.query(text, params);
-  return rows;
-}
-
 function toNum(v) {
   if (v === '' || v === null || v === undefined) return null;
   const n = Number(v);
   return Number.isNaN(n) ? null : n;
 }
-
-/* ============================================================
-   HEALTH CHECK
-============================================================ */
-app.get('/api/health', async (_req, res) => {
-  try {
-    const r = await q('SELECT NOW() AS now', []);
-    res.json({ ok: true, now: r[0].now });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: String(e) });
-  }
-});
-
 
 /* ============================================================
    PERFORMANCE INDEXES (Auto-Run)
@@ -819,107 +805,6 @@ async function waitForDb(pool, retries = 30, delay = 2000) {
 /* ============================================================
    LOGIN
 ============================================================ */
-/* ============================================================
-   LOGIN (Modified for Multi-Factory)
-============================================================ */
-app.post('/api/login', async (req, res) => {
-  try {
-    const { username, password } = req.body || {};
-    if (!username || !password) return res.json({ ok: false, error: 'Missing credentials' });
-
-    // 1. Fetch User
-    const rows = await q(
-      `SELECT id, username, password, line, role_code, permissions, global_access
-         FROM users
-        WHERE username = $1
-          AND COALESCE(is_active, TRUE) = TRUE
-        LIMIT 1`,
-      [username]
-    );
-
-    if (!rows.length) return res.json({ ok: false, error: 'User not found' });
-    const u = rows[0];
-
-    // 2. Validate Password
-    let valid = false;
-    let needsRehash = false;
-
-    if (u.password.startsWith('$2')) {
-      valid = await bcrypt.compare(password, u.password);
-    } else {
-      if (u.password === password) {
-        valid = true;
-        needsRehash = true; // Auto-migrate legacy plain text
-      }
-    }
-
-    if (!valid) return res.json({ ok: false, error: 'Password is Wrong' });
-
-    // 3. Auto-Rehash if needed
-    if (needsRehash) {
-      const hash = await bcrypt.hash(password, 10);
-      await q('UPDATE users SET password=$1 WHERE username=$2', [hash, u.username]);
-    }
-
-    // 4. Fetch Allowed Factories
-    let factories = [];
-    if (u.role_code === 'superadmin' || u.username === 'superadmin') {
-      // Superadmin sees ALL active factories
-      factories = await q(`SELECT id, name, code, location, 'superadmin' as user_role FROM factories WHERE is_active = true ORDER BY id`);
-    } else {
-      // Normal user sees assigned factories
-      factories = await q(`
-            SELECT f.id, f.name, f.code, f.location, uf.role_code as user_role 
-            FROM factories f
-            JOIN user_factories uf ON uf.factory_id = f.id
-            WHERE uf.user_id = $1 AND f.is_active = true
-            ORDER BY f.id
-        `, [u.id]);
-    }
-
-    // Don't send password back
-    delete u.password;
-
-    // Calc Current Shift/Date (Server Time)
-    const now = new Date();
-    const h = now.getHours();
-    // Logic: Day 08:00 - 20:00, Night 20:00 - 08:00
-    // If < 08, it's Night of Previous Date
-    let shift = 'Day';
-    let shiftDate = new Date(now);
-
-    if (h >= 8 && h < 20) {
-      shift = 'Day';
-    } else {
-      shift = 'Night';
-      if (h < 8) {
-        // e.g. 2 AM on 25th -> Night of 24th
-        shiftDate.setDate(shiftDate.getDate() - 1);
-      }
-      // If h >= 20, it's Night of Today (25th), so date is correct
-    }
-    const yyyy = shiftDate.getFullYear();
-    const mm = String(shiftDate.getMonth() + 1).padStart(2, '0');
-    const dd = String(shiftDate.getDate()).padStart(2, '0');
-    const dateStr = `${yyyy}-${mm}-${dd}`;
-
-    u.shift = shift;
-    u.shiftDate = dateStr;
-
-    // Return user info + factories list + Token
-    const token = jwt.sign(
-      { id: u.id, username: u.username, role: u.role_code, line: u.line },
-      JWT_SECRET,
-      { expiresIn: '12h' }
-    );
-    res.json({ ok: true, data: u, factories, token });
-
-  } catch (e) {
-    console.error('login error', e);
-    res.status(500).json({ ok: false, error: String(e) });
-  }
-});
-
 /* ============================================================
    FACTORIES MANAGEMENT
 ============================================================ */
@@ -5266,33 +5151,6 @@ const PORT = process.env.PORT || 3000;
 
 
 
-
-// -------------------------------------------------------------
-// ENHANCED LOGIN (Return Role)
-// -------------------------------------------------------------
-app.post('/api/login', async (req, res) => {
-  try {
-    const { username, password } = req.body || {};
-    if (!username || !password) return res.json({ ok: false, error: 'Missing credentials' });
-
-    const rows = await q(
-      `SELECT username, line, role_code FROM users 
-       WHERE username = $1 
-         AND password = $2 
-         AND COALESCE(is_active, TRUE) = TRUE
-       LIMIT 1`,
-      [username, password]
-    );
-
-    if (!rows.length) return res.json({ ok: false, error: 'Invalid username or password' });
-
-    // Frontend expects role_code for supervisor check
-    res.json({ ok: true, data: { username: rows[0].username, line: rows[0].line, role: rows[0].role_code, role_code: rows[0].role_code } });
-  } catch (e) {
-    console.error('login error', e);
-    res.status(500).json({ ok: false, error: String(e) });
-  }
-});
 
 // -------------------------------------------------------------
 // DASHBOARD APIs

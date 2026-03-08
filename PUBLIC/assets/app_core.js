@@ -56,9 +56,10 @@ window.JPSMS = window.JPSMS || {};
             delete headers['Content-Type']; // Let browser set boundary
         }
 
-        // Add 10s Timeout to ALL requests (Prevents "Unlimited Loading")
+        // Default 60s timeout; use options.timeoutMs for long ops (e.g. upload/sync)
+        const timeoutMs = options.timeoutMs != null ? options.timeoutMs : 60000;
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 600000);
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
         try {
             const res = await fetch(API_BASE + endpoint, {
@@ -91,12 +92,12 @@ window.JPSMS = window.JPSMS || {};
     }
 
     exports.api = {
-        get: (url) => request(url),
-        post: (url, body) => request(url, { method: 'POST', body: JSON.stringify(body) }),
-        put: (url, body) => request(url, { method: 'PUT', body: JSON.stringify(body) }),
-        delete: (url) => request(url, { method: 'DELETE' }),
-        upload: (url, formData) => request(url, { method: 'POST', body: formData }),
-        request: (url, options) => request(url, options) // Expose generic just in case
+        get: (url, options) => request(url, options),
+        post: (url, body, options) => request(url, { method: 'POST', body: JSON.stringify(body), ...options }),
+        put: (url, body, options) => request(url, { method: 'PUT', body: JSON.stringify(body), ...options }),
+        delete: (url, options) => request(url, { method: 'DELETE', ...options }),
+        upload: (url, formData, options) => request(url, { method: 'POST', body: formData, timeoutMs: 300000, ...options }),
+        request: (url, options) => request(url, options)
     };
 
     // --- Auth ---
@@ -119,7 +120,7 @@ window.JPSMS = window.JPSMS || {};
             localStorage.removeItem('user');
             window.location.href = '/login.html'; // Redirect to login
         },
-        getUser: () => JSON.parse(localStorage.getItem('user') || '{}'),
+        getUser: () => JSON.parse(localStorage.getItem('user') || '{}') || {},
         requireAuth: () => {
             const u = JSON.parse(localStorage.getItem('user') || '{}');
             if (!u.username) {
@@ -143,7 +144,7 @@ window.JPSMS = window.JPSMS || {};
             return u;
         },
         can: (feature, action = 'view') => {
-            const u = JSON.parse(localStorage.getItem('user') || '{}');
+            const u = JSON.parse(localStorage.getItem('user') || '{}') || {};
             const userRoleStr = String(u.role || u.role_code || '').trim().toLowerCase();
 
             if ((userRoleStr === 'admin' || userRoleStr === 'superadmin') && feature === 'factories') return true;
@@ -733,20 +734,19 @@ window.JPSMS = window.JPSMS || {};
         <div style="width:32px;height:32px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;margin-right:10px;">
             ${(user.username || 'U').charAt(0).toUpperCase()}
         </div>
-        <div>
-          <div style="font-weight:600; font-size:0.9rem;">${user.username || 'Guest'}</div>
-          <div style="font-size:0.75rem;opacity:0.7;">
+        <div style="flex: 1; overflow: hidden;">
+          <div style="font-weight:600; font-size:0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${user.username || 'Guest'}</div>
+          <div style="font-size:0.75rem; opacity:0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
             ${user.role || user.role_code || 'Operator'}
-            ${localStorage.getItem('jpsms_factory_name') ? ` <span style="font-size:0.65rem; color:#60a5fa">(${localStorage.getItem('jpsms_factory_name')})</span>` : ''}
+          </div>
+          <div id="factory-selector-container" style="margin-top: 5px;">
+              <select id="factory-switch-select" style="width: 100%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; font-size: 0.75rem; padding: 2px 4px; border-radius: 4px; cursor: pointer; outline: none;">
+                  <option value="${localStorage.getItem('jpsms_factory_id') || ''}" selected>${localStorage.getItem('jpsms_factory_name') || 'Select Factory'}</option>
+              </select>
           </div>
         </div>
         
-        <div style="margin-left:auto; display:flex; gap:5px">
-             ${(['admin', 'superadmin'].includes(user.role_code)) ? `
-            <button onclick="localStorage.removeItem('token'); window.location.href='/login.html'" class="btn btn-outline" style="padding:4px 6px;font-size:1rem;border:none;background:transparent;color:#94a3b8;" title="Switch Factory">
-                <i class="bi bi-arrow-repeat"></i>
-            </button>` : ''}
-
+        <div style="margin-left:5px; display:flex; gap:5px; align-items: center;">
             <button onclick="JPSMS.auth.logout()" class="btn btn-outline" style="padding:4px 6px;font-size:1.2rem;border:none;background:transparent;color:white;" title="Logout">
                 <i class="bi bi-box-arrow-right"></i>
             </button>
@@ -788,6 +788,36 @@ window.JPSMS = window.JPSMS || {};
 
         document.body.prepend(sidebar);
 
+        // Populate Factory Selector
+        (async function populateFactories() {
+            const select = sidebar.querySelector('#factory-switch-select');
+            if (!select) return;
+            try {
+                // Fetch allowed factories for this user
+                const res = await exports.api.request('/factories', { method: 'GET', skipLoader: true });
+                if (res.ok && res.data) {
+                    const currentId = localStorage.getItem('jpsms_factory_id');
+                    select.innerHTML = res.data.map(f => `
+                        <option value="${f.id}" ${f.id == currentId ? 'selected' : ''}>${f.name}</option>
+                    `).join('');
+
+                    // Update name in local storage if missing or changed
+                    const currentFactory = res.data.find(f => f.id == currentId);
+                    if (currentFactory && localStorage.getItem('jpsms_factory_name') !== currentFactory.name) {
+                        localStorage.setItem('jpsms_factory_name', currentFactory.name);
+                    }
+                }
+            } catch (e) { console.warn('Factory fetch error', e); }
+
+            select.onchange = (e) => {
+                const id = e.target.value;
+                const name = e.target.options[e.target.selectedIndex].text;
+                localStorage.setItem('jpsms_factory_id', id);
+                localStorage.setItem('jpsms_factory_name', name);
+                window.location.reload();
+            };
+        })();
+
         // Inject Hamburger if Header Exists
         setTimeout(() => {
             const header = document.querySelector('.header');
@@ -816,6 +846,7 @@ window.JPSMS = window.JPSMS || {};
             .sub-link:hover { color: #fff; }
             .sub-link.active-link { color: #60a5fa !important; font-weight: 700; background: rgba(255,255,255,0.05); border-radius: 4px; padding-left:4px; }
             .nav-item.active .nav-link-main { color: #fff; font-weight: 600; }
+            #factory-switch-select option { background: #1e293b; color: #fff; }
         `;
         document.head.appendChild(style);
 
