@@ -1,11 +1,12 @@
 const { Pool } = require('pg');
+require('dotenv').config();
 
 const pool = new Pool({
-    host: process.env.PGHOST || 'localhost',
-    port: process.env.PGPORT || 5432,
-    user: process.env.PGUSER || 'postgres',
-    password: process.env.PGPASSWORD || 'Sanjay@541##',
-    database: process.env.PGDATABASE || 'jpsms'
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 5432,
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'Sanjay@541##',
+    database: process.env.DB_NAME || 'jpsms'
 });
 
 async function seedUsers() {
@@ -16,7 +17,7 @@ async function seedUsers() {
         // Admin
         await client.query(`
             INSERT INTO users (username, password, line, role_code, is_active)
-            VALUES ('admin', 'admin', 'ALL', 'admin', true)
+            VALUES ('superadmin', 'SM_2025', 'ALL', 'superadmin', true)
             ON CONFLICT (username) DO NOTHING
         `);
 

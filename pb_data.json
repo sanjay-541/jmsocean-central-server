@@ -1,0 +1,26 @@
+[
+  {
+    "plan_id": "PLN-1771738765958",
+    "plant": "DUNGRA",
+    "factory_id": 1,
+    "status": "Running"
+  },
+  {
+    "plan_id": "PLN-1771738718094",
+    "plant": "DUNGRA",
+    "factory_id": 1,
+    "status": "PLANNED"
+  },
+  {
+    "plan_id": "PLN-1771737717257",
+    "plant": "DUNGRA",
+    "factory_id": 1,
+    "status": "PLANNED"
+  },
+  {
+    "plan_id": "PLN-1771737340972",
+    "plant": "DUNGRA",
+    "factory_id": 1,
+    "status": "PLANNED"
+  }
+]

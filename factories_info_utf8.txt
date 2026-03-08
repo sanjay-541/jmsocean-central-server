@@ -1,0 +1,235 @@
+Factories:
+[
+  {
+    "id": 1,
+    "name": "Dungra Plant 1",
+    "code": "DUNGRA_1",
+    "is_active": true
+  },
+  {
+    "id": 4,
+    "name": "Shivani_Daman Unit",
+    "code": "JP02",
+    "is_active": true
+  },
+  {
+    "id": 2,
+    "name": "Dungra Plant 2",
+    "code": "D2",
+    "is_active": true
+  }
+]
+
+User Assignments:
+[
+  {
+    "id": 10,
+    "username": "BL2 & CL2",
+    "role_code": "supervisor",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 11,
+    "username": "BL3 & CL3",
+    "role_code": "supervisor",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 12,
+    "username": "BL4 & CL4",
+    "role_code": "supervisor",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 13,
+    "username": "Rajesh.Prajapati",
+    "role_code": "sr_production_manager",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 14,
+    "username": "FL1",
+    "role_code": "supervisor",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 15,
+    "username": "Rajesh.Shrivastav",
+    "role_code": "production_manager",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 16,
+    "username": "Ratnakar",
+    "role_code": "production_manager",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 17,
+    "username": "EL1 & EL2",
+    "role_code": "supervisor",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 18,
+    "username": "Sujeet.singh",
+    "role_code": "packing_manager",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 1,
+    "username": "Hitesh.joshi",
+    "role_code": "admin",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 2,
+    "username": "Kalyan.saha",
+    "role_code": "hr",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 3,
+    "username": "Sanjay",
+    "role_code": "supervisor",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 4,
+    "username": "Satyam",
+    "role_code": "quality",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 5,
+    "username": "Rinkal",
+    "role_code": "planner",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 31,
+    "username": "cloud_admin",
+    "role_code": "admin",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 6,
+    "username": "Suyog",
+    "role_code": "planner",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 8,
+    "username": "Sanjay mali",
+    "role_code": "qc_supervisor",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 9,
+    "username": "BL1 & CL1",
+    "role_code": "supervisor",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 31,
+    "username": "cloud_admin",
+    "role_code": "admin",
+    "factory_name": "Dungra Plant 2"
+  },
+  {
+    "id": 1,
+    "username": "Hitesh.joshi",
+    "role_code": "admin",
+    "factory_name": "Dungra Plant 2"
+  },
+  {
+    "id": 27,
+    "username": "sup_test",
+    "role_code": "supervisor",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 19,
+    "username": "Manoj.Rai",
+    "role_code": "ass__production_manager",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 20,
+    "username": "Atish Kadam",
+    "role_code": "quality",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 21,
+    "username": "Devesh",
+    "role_code": "planner",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 22,
+    "username": "Vijay",
+    "role_code": "dispatch_manager",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 23,
+    "username": "Santosh",
+    "role_code": "planner",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 25,
+    "username": "Riya",
+    "role_code": "planner_executive",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 26,
+    "username": "Gajendra.singh",
+    "role_code": "warehouse___dispatch_manager",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 24,
+    "username": "Mansi",
+    "role_code": "planner_executive",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 7,
+    "username": "superadmin",
+    "role_code": "admin",
+    "factory_name": "Dungra Plant 1"
+  },
+  {
+    "id": 7,
+    "username": "superadmin",
+    "role_code": "admin",
+    "factory_name": "Dungra Plant 2"
+  },
+  {
+    "id": 7,
+    "username": "superadmin",
+    "role_code": "admin",
+    "factory_name": "Shivani_Daman Unit"
+  },
+  {
+    "id": 28,
+    "username": "Test",
+    "role_code": "packing_manager",
+    "factory_name": null
+  },
+  {
+    "id": 30,
+    "username": "Kamalakanta",
+    "role_code": "production_incharge",
+    "factory_name": null
+  },
+  {
+    "id": 29,
+    "username": "Sup Test",
+    "role_code": "supervisor",
+    "factory_name": null
+  }
+]

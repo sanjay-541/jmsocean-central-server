@@ -1,5 +1,6 @@
 require('dotenv').config();
 const { Pool } = require('pg');
+const fs = require('fs');
 
 const pool = new Pool({
     user: process.env.DB_USER || 'postgres',
@@ -11,12 +12,9 @@ const pool = new Pool({
 
 async function debug() {
     try {
-        const res = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'plan_board'
-    `);
-        console.log(JSON.stringify(res.rows, null, 2));
+        const res = await pool.query('SELECT plan_id, plant, factory_id, status FROM plan_board ORDER BY updated_at DESC LIMIT 50');
+        fs.writeFileSync('pb_data.json', JSON.stringify(res.rows, null, 2));
+        console.log('Data written to pb_data.json');
     } catch (err) {
         console.error(err);
     } finally {

@@ -9,12 +9,13 @@ const pool = new Pool({
     port: process.env.DB_PORT || 5432,
 });
 
-async function debug() {
+async function run() {
     try {
         const res = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'plan_board'
+      SELECT id, plan_id, plant, factory_id, status, updated_at 
+      FROM plan_board 
+      ORDER BY updated_at DESC 
+      LIMIT 20
     `);
         console.log(JSON.stringify(res.rows, null, 2));
     } catch (err) {
@@ -24,4 +25,4 @@ async function debug() {
     }
 }
 
-debug();
+run();

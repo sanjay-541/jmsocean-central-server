@@ -11,14 +11,12 @@ const pool = new Pool({
 
 async function debug() {
     try {
-        const res = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'plan_board'
-    `);
-        console.log(JSON.stringify(res.rows, null, 2));
+        const res = await pool.query('SELECT * FROM plan_board LIMIT 1');
+        console.log('Success:', res.rows.length);
     } catch (err) {
+        console.error('--- FULL ERROR START ---');
         console.error(err);
+        console.error('--- FULL ERROR END ---');
     } finally {
         await pool.end();
     }

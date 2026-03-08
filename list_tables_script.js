@@ -1,5 +1,6 @@
 require('dotenv').config();
 const { Pool } = require('pg');
+const fs = require('fs');
 
 const pool = new Pool({
     user: process.env.DB_USER || 'postgres',
@@ -9,14 +10,12 @@ const pool = new Pool({
     port: process.env.DB_PORT || 5432,
 });
 
-async function debug() {
+async function run() {
     try {
-        const res = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'plan_board'
-    `);
-        console.log(JSON.stringify(res.rows, null, 2));
+        const res = await pool.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
+        const tables = res.rows.map(r => r.table_name).join('\n');
+        fs.writeFileSync('tables_list.txt', tables);
+        console.log('Tables written to tables_list.txt');
     } catch (err) {
         console.error(err);
     } finally {
@@ -24,4 +23,4 @@ async function debug() {
     }
 }
 
-debug();
+run();

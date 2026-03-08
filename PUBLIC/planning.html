@@ -4752,7 +4752,7 @@
           for (const p of plans) {
             const payload = {
               planId: `PLN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-              plant: (localStorage.getItem('jpsms_factory_id') == '2' ? 'SHIVANI' : 'DUNGRA'),
+              plant: localStorage.getItem('jpsms_factory_name') || 'DUNGRA',
               machine: p.mach,
               orderNo: p.order.order_no,
               itemCode: bpTargetMould.itemCode, // closure var

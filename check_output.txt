@@ -1,0 +1,35 @@
+﻿[dotenv@17.2.3] injecting env (9) from .env -- tip: Γ£à audit secrets and track compliance: https://dotenvx.com/ops
+[
+  {
+    "id": 4,
+    "plan_id": "PLN-1771738765958",
+    "plant": "DUNGRA",
+    "factory_id": 1,
+    "status": "Running",
+    "updated_at": "2026-02-22T05:39:28.148Z"
+  },
+  {
+    "id": 3,
+    "plan_id": "PLN-1771738718094",
+    "plant": "DUNGRA",
+    "factory_id": 1,
+    "status": "PLANNED",
+    "updated_at": "2026-02-22T05:38:38.096Z"
+  },
+  {
+    "id": 2,
+    "plan_id": "PLN-1771737717257",
+    "plant": "DUNGRA",
+    "factory_id": 1,
+    "status": "PLANNED",
+    "updated_at": "2026-02-22T05:21:57.262Z"
+  },
+  {
+    "id": 1,
+    "plan_id": "PLN-1771737340972",
+    "plant": "DUNGRA",
+    "factory_id": 1,
+    "status": "PLANNED",
+    "updated_at": "2026-02-22T05:15:40.975Z"
+  }
+]

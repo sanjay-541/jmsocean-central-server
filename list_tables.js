@@ -12,9 +12,9 @@ const pool = new Pool({
 async function debug() {
     try {
         const res = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'plan_board'
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
     `);
         console.log(JSON.stringify(res.rows, null, 2));
     } catch (err) {

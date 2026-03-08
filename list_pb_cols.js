@@ -12,11 +12,19 @@ const pool = new Pool({
 async function debug() {
     try {
         const res = await pool.query(`
-      SELECT column_name, data_type 
+      SELECT column_name 
       FROM information_schema.columns 
       WHERE table_name = 'plan_board'
+      ORDER BY ordinal_position
     `);
-        console.log(JSON.stringify(res.rows, null, 2));
+        console.log(res.rows.map(r => r.column_name).join(', '));
+
+        const typeRes = await pool.query(`
+      SELECT table_type 
+      FROM information_schema.tables 
+      WHERE table_name = 'plan_board'
+    `);
+        console.log('Table Type:', typeRes.rows[0]?.table_type);
     } catch (err) {
         console.error(err);
     } finally {

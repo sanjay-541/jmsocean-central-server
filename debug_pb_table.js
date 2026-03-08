@@ -11,11 +11,7 @@ const pool = new Pool({
 
 async function debug() {
     try {
-        const res = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'plan_board'
-    `);
+        const res = await pool.query('SELECT * FROM plan_board ORDER BY created_at DESC LIMIT 20');
         console.log(JSON.stringify(res.rows, null, 2));
     } catch (err) {
         console.error(err);
