@@ -1,8 +1,5 @@
 'use strict';
 require('dotenv').config();
-console.log("-----------------------------------------");
-console.log("SERVER RELOADED WITH FIX (cleanEAN)");
-console.log("-----------------------------------------");
 
 const path = require('path');
 const express = require('express');
@@ -15,14 +12,17 @@ const helmet = require('helmet');
 const compression = require('compression');
 const bcrypt = require('bcryptjs');
 const aiService = require('./services/ai.service');
-const syncService = require('./services/sync.service'); // [NEW] Sync
-const updaterService = require('./services/updater.service'); // [NEW] Updater
-const erpRoutes = require('./routes/erp.routes'); // [NEW] ERP Integration
-const vendorRoutes = require('./routes/vendor.routes'); // [NEW] Vendor Portal
-const cors = require('cors'); // [FIX] Enable CORS
-const jwt = require('jsonwebtoken'); // [SECURITY] JWT Authentication
+const syncService = require('./services/sync.service');
+const updaterService = require('./services/updater.service');
+const erpRoutes = require('./routes/erp.routes');
+const vendorRoutes = require('./routes/vendor.routes');
+const { createAuthRouter } = require('./routes/auth.routes');
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'jpsms-fallback-secret-key-change-in-prod';
+const isProd = process.env.NODE_ENV === 'production';
+const JWT_SECRET = process.env.JWT_SECRET || (isProd ? '' : 'jms-dev-fallback');
+if (isProd && !JWT_SECRET) throw new Error('JWT_SECRET must be set in production (.env)');
 
 // Init AI
 aiService.init(process.env.GEMINI_API_KEY);
@@ -32,13 +32,23 @@ const app = express();
 /* =========================
    BASIC MIDDLEWARE
 ========================= */
-app.use(cors()); // [FIX] Allow all origins
+app.use(cors({ origin: isProd ? undefined : true })); // In prod set CORS_ORIGIN if needed
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
-// Security Headers
 app.use(helmet({
-  contentSecurityPolicy: false, // Disabled to allow inline scripts/styles (dev mode)
-  crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow PWA assets
+  contentSecurityPolicy: isProd ? {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://cdn.jsdelivr.net", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'"],
+      frameSrc: ["'none'"],
+      baseUri: ["'self'"]
+    }
+  } : false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
   crossOriginEmbedderPolicy: false
 }));
 // GZIP Compression
@@ -50,14 +60,10 @@ app.use(compression({
   }
 }));
 
-// Use ERP Routes
-// Use ERP Routes
 app.use('/api/erp', erpRoutes);
-// Use Vendor Routes
 app.use('/api/vendor', vendorRoutes);
 app.use('/api/sync', syncService.router);
 app.use('/api/update', updaterService.router);
-
 
 /* ============================================================
    SECURITY MIDDLEWARE
@@ -919,7 +925,8 @@ app.post('/api/login', async (req, res) => {
 ============================================================ */
 app.get('/api/factories', async (req, res) => {
   try {
-    const rows = await q('SELECT * FROM factories ORDER BY id');
+    // [FIX] Only show active factories that are explicitly created/registered
+    const rows = await q('SELECT * FROM factories WHERE is_active = true ORDER BY id');
     res.json({ ok: true, data: rows });
   } catch (e) {
     res.status(500).json({ ok: false, error: String(e) });
@@ -2055,9 +2062,12 @@ app.get('/api/planning/board', async (req, res) => {
       where += ` AND pb.factory_id = $${params.length} `;
     }
 
+    // [FIX] Relax date filtering to show plans even if they started in the past
     if (date) {
       params.push(date);
-      where += ` AND start_date <= $${params.length} AND(end_date IS NULL OR end_date >= $${params.length})`;
+      // Removed strict <= start_date check if we want to see everything "on" or "after" that date
+      // Or just show all active plans for that plant
+      where += ` AND (start_date <= $${params.length} OR status = 'PLANNED') AND(end_date IS NULL OR end_date >= $${params.length})`;
     }
 
     const rows = await q(
@@ -2713,6 +2723,8 @@ app.post('/api/planning/create', async (req, res) => {
     await client.query('BEGIN');
     const results = [];
 
+    const factoryId = getFactoryId(req);
+
     for (const p of plans) {
       if (!p.planId || !p.plant || !p.machine) {
         throw new Error('Missing planId/plant/machine in one of the plans');
@@ -2747,11 +2759,11 @@ app.post('/api/planning/create', async (req, res) => {
         INSERT INTO plan_board
   (plan_id, plant, building, line, machine, seq,
     order_no, item_code, item_name, mould_name,
-    plan_qty, bal_qty, start_date, end_date, status, updated_at)
+    plan_qty, bal_qty, start_date, end_date, status, updated_at, factory_id)
 VALUES
   ($1, $2, $3, $4, $5, $6,
     $7, $8, $9, $10,
-    $11, $12, $13, $14, 'PLANNED', NOW())
+    $11, $12, $13, $14, 'PLANNED', NOW(), $15)
         RETURNING id
   `,
         [
@@ -2768,7 +2780,8 @@ VALUES
           toNum(p.planQty),
           toNum(p.balQty ?? p.planQty),
           p.startDate || null,
-          p.endDate || null
+          p.endDate || null,
+          factoryId
         ]
       );
 
@@ -6966,9 +6979,9 @@ app.post('/api/admin/clear-data', async (req, res) => {
     const perms = u ? (u.permissions || {}) : {};
 
     // Allow if Admin OR has 'data_wipe' permission
-    const allowed = (u && u.role_code === 'admin') || (perms.critical_ops && perms.critical_ops.data_wipe);
+    const allowed = (u && (u.role_code === 'admin' || u.role_code === 'superadmin')) || (perms.critical_ops && perms.critical_ops.data_wipe);
 
-    if (!allowed) return res.json({ ok: false, error: 'Access Denied: Data Wipe permission required' });
+    if (!allowed) return res.json({ ok: false, error: 'Access Denied: Admin or Superadmin permission required' });
 
     let table = '';
     if (type === 'orders') table = 'orders';
